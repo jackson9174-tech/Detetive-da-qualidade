@@ -318,10 +318,10 @@ let S={scr:7,name:'',pos:{sec:'patio'},die:0,rolled:false,s1:false,visits:{},got
  f:{nc:null,loc:null,h:{},hj:{},rc:null,capa:{},cty:{},resp:{},prz:{},rct:'',ver:''}};
 const $=id=>document.getElementById(id);
 /* ---- Registro de participantes (Supabase). Preencha a URL e a chave "anon public" do seu projeto ---- */
-const SB={url:'COLE_AQUI_A_URL_DO_PROJETO',key:'COLE_AQUI_A_CHAVE_ANON_PUBLIC'};
+const SB={url:'https://laljexkkqnaczrtbfohy.supabase.co',key:'sb_publishable_aaOWM_kmMkSlH1uF6kAdhQ_oVfsh_y2'};
 function track(ev,extra){S.pid=S.pid||(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:r&3|8).toString(16)}));
  if(!/^https:\/\//.test(SB.url))return Promise.resolve(null);
- return fetch(SB.url+'/rest/v1/eventos_treinamento',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:SB.key,Authorization:'Bearer '+SB.key,Prefer:'return=minimal'},body:JSON.stringify({participante_id:S.pid,nome:S.name.trim().slice(0,80),evento:ev,caso:CUR?CUR.id:null,...(extra||{})})}).then(r=>r.ok).catch(()=>false)}
+ return fetch(SB.url+'/rest/v1/eventos_treinamento',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:SB.key,...(SB.key.startsWith('sb_')?{}:{Authorization:'Bearer '+SB.key}),Prefer:'return=minimal'},body:JSON.stringify({participante_id:S.pid,nome:S.name.trim().slice(0,80),evento:ev,caso:CUR?CUR.id:null,...(extra||{})})}).then(r=>r.ok).catch(()=>false)}
 const syText=()=>S.sync===true?'✔ Seu resultado foi registrado.':S.sync===false?'⚠ Não foi possível registrar seu resultado. Verifique a conexão com a internet.':'';
 
 function dijkstra(starts,budget){const D={};const q=starts.map(s=>[s[1],s[0]]);starts.forEach(s=>D[s[0]]=s[1]);
