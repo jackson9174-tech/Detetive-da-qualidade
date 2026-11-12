@@ -342,7 +342,7 @@ let CUR=null,CARDS,HYP,NC,LOC,RC,CAPA,OKI={};
 const shuf=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
 function setCase(id){CUR=CASES[id];CARDS=CUR.cards;HYP=shuf(CUR.hyp.slice());CAPA=shuf(CUR.capa.slice());NC=shuf(CUR.nc.slice());OKI.nc=NC.indexOf(CUR.nc[0]);LOC=shuf(CUR.loc.slice());OKI.loc=LOC.indexOf(CUR.loc[0]);RC=shuf(CUR.rc.slice());OKI.rc=new Set(CUR.rc.slice(0,CUR.rcN||1).map(x=>RC.indexOf(x)));
  if(S.played){S.pid=null;track('cadastro')}S.played=1;
- Object.assign(S,{pos:{sec:'patio'},die:0,rolled:false,s1:false,visits:{},got:[],notes:{},log:'Todos os peões começam no Pátio. Role o dado!',show:null,t0:null,sent:0,sync:undefined,conf:null,ck:false,res:null,f:{nc:null,loc:null,h:{},hj:{},rc:null,capa:{},cty:{},resp:{},prz:{},rct:'',ver:''}})}
+ Object.assign(S,{pos:{sec:'patio'},die:0,rolled:false,s1:false,visits:{},got:[],notes:{},log:'Todos os peões começam no Pátio. Role o dado!',show:null,t0:null,sent:0,sync:undefined,conf:null,ck:false,team:"",res:null,f:{nc:null,loc:null,h:{},hj:{},rc:null,capa:{},cty:{},resp:{},prz:{},rct:'',ver:''}})}
 
 /* ---- Estado ---- */
 let S={scr:7,name:'',seg:'',pos:{sec:'patio'},die:0,rolled:false,s1:false,visits:{},got:[],notes:{},log:'Todos os peões começam no Pátio. Role o dado!',t0:null,
@@ -487,27 +487,31 @@ function res(){const f=S.f,L=[];let t=0,mx=0;f.resp=f.resp||{};f.prz=f.prz||{};
  $('app').innerHTML=`<div class="card"><div class="tag">Caso encerrado · Caso ${CUR.num}</div><p class="name-ok">${S.name}, sua investigação foi entregue.</p><div class="big">${pct} / 100</div><h2>${nm}</h2><p class="mut" style="margin-top:0">${t} de ${mx} pontos possíveis neste caso</p><p class="mut" id="sy">${syText()}</p>${L.map(l=>`<div class="fb ${l[0]?'':'no'}">${l[1]}</div>`).join('')}
 ${G}
 <h2 style="margin-top:1.2rem">Confirmação do treinamento</h2>${S.conf?`<div class="fb">✅ Treinamento confirmado por <strong>${S.name}</strong> em ${S.conf.d.toLocaleString('pt-BR')} · Código <strong>${S.conf.code}</strong><br>Falta só preencher o <a href="${FORM_URL}" target="_blank" rel="noopener"><strong>Registro de Treinamento - Guardiões da Qualidade</strong></a> (abre em uma nova aba).</div>`:`<label class="row" style="align-items:flex-start"><input type="checkbox" style="width:auto;margin-top:.3rem" ${S.ck?'checked':''} onchange="S.ck=this.checked;document.getElementById('cf').disabled=!this.checked"> <span>Declaro que realizei o treinamento “Detetive da Qualidade: ${CUR.name}” e compreendi o seu conteúdo.</span></label><button id="cf" class="btn btn-primary" style="margin-top:.7rem" ${S.ck?'':'disabled'} onclick="confirmTr()">Confirmar treinamento e preencher o formulário ↗</button><p class="mut" style="margin:.4rem 0 0">Ao confirmar, o formulário de Registro de Treinamento abre em uma nova aba.</p>`}
-<div class="row" style="margin-top:1rem"><button class="btn btn-primary" onclick="cert()">⬇ Baixar certificado (PDF)</button><button class="btn btn-quiet" onclick="go(6)">Jogar outro caso</button></div></div>`}
+<div style="text-align:left;margin-top:1rem"><label for="team"><strong>Certificado para a equipe (opcional)</strong></label><textarea id="team" rows="3" style="width:100%;margin-top:.3rem" placeholder="Digite um nome por linha. Será gerado um PDF para cada participante." oninput="S.team=this.value">${esc2(S.team||'')}</textarea><p class="mut" style="margin:.3rem 0 0">Seu certificado é sempre gerado. Cada nome acima gera um PDF adicional. Se o navegador pedir, permita baixar vários arquivos.</p></div><div class="row" style="margin-top:1rem"><button class="btn btn-primary" onclick="cert()">⬇ Baixar certificado(s) (PDF)</button><button class="btn btn-quiet" onclick="go(6)">Jogar outro caso</button></div></div>`}
 
 const FORM_URL='https://forms.cloud.microsoft/r/1z9Wvi7SLV';
 function confirmTr(){S.conf={d:new Date(),code:'DQ-'+Date.now().toString(36).toUpperCase().slice(-6)};window.open(FORM_URL,'_blank','noopener');track('confirmacao');R()}
 function cert(){if(!window.jspdf){alert('Não foi possível carregar o gerador de PDF. Verifique a conexão com a internet e tente novamente.');return}
- const {jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),W=297,H=210,pri=[18,56,95],sec=[78,198,188],mut=[95,115,128];
+ const me=S.name.trim()||'Participante',ex=(S.team||'').split(/\n/).map(x=>x.trim()).filter(Boolean).filter(x=>x.toLowerCase()!==me.toLowerCase());
+ const {jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}),L=[me,...new Set(ex)];L.forEach((n,i)=>certFor(n,i>0,d,i===0));d.save('Certificados_Detetive_da_Qualidade'+(L.length>1?'_equipe':'_'+me.replace(/\s+/g,'_'))+'.pdf')}
+function esc2(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function certFor(nm,team,d,first){
+ if(!first)d.addPage();const W=297,H=210,pri=[18,56,95],sec=[78,198,188],mut=[95,115,128];
  d.setFillColor(248,251,252);d.rect(0,0,W,H,'F');d.setDrawColor(...sec);d.setLineWidth(1.1);d.rect(8,8,W-16,H-16);d.setDrawColor(...pri);d.setLineWidth(.4);d.rect(11,11,W-22,H-22);
  try{d.addImage(document.querySelector('.brand-logo').src,'PNG',W/2-20,18,40,12)}catch(e){}
  try{d.addImage(document.querySelector('.brand-guard').src,'PNG',W/2-26,178,52,17.5)}catch(e){}
  d.setTextColor(...sec);d.setFont('helvetica','bold');d.setFontSize(10);d.text('R2PHARMA  ·  TREINAMENTO INTERNO',W/2,40,{align:'center'});
  d.setTextColor(...pri);d.setFontSize(30);d.text('CERTIFICADO DE CONCLUSÃO',W/2,55,{align:'center'});
  d.setFont('helvetica','normal');d.setFontSize(11);d.setTextColor(...mut);d.text('Certificamos que',W/2,70,{align:'center'});
- d.setFont('helvetica','bold');d.setFontSize(24);d.setTextColor(...pri);d.text(S.name.trim()||'Participante',W/2,82,{align:'center'});
+ d.setFont('helvetica','bold');d.setFontSize(24);d.setTextColor(...pri);d.text(nm,W/2,82,{align:'center'});
  d.setDrawColor(...sec);d.setLineWidth(.4);d.line(W/2-45,87,W/2+45,87);
  d.setFont('helvetica','normal');d.setFontSize(11.5);d.setTextColor(...mut);
- d.text(d.splitTextToSize('concluiu o treinamento "Detetive da Qualidade: '+CUR.name+'", de investigação de não conformidades, análise de causa raiz e plano de ação (CAPA), alcançando o título de '+S.res.nm+' R2PHARMA.',W-90),W/2,98,{align:'center'});
+ d.text(d.splitTextToSize('concluiu o treinamento de Tratamento de Não Conformidade referente ao jogo "Detetive da Qualidade: '+CUR.name+'", de investigação de não conformidades, análise de causa raiz e plano de ação (CAPA), alcançando o título de '+S.res.nm+' R2PHARMA.',W-90),W/2,98,{align:'center'});
  d.setFont('helvetica','bold');d.setFontSize(13);d.setTextColor(...pri);d.text('Pontuação final: '+S.res.pct+' / 100  ('+S.res.t+' de '+S.res.mx+' pontos)',W/2,126,{align:'center'});
  d.setFont('helvetica','normal');d.setFontSize(10);d.setTextColor(...mut);
- d.text(S.conf?'Treinamento confirmado em '+S.conf.d.toLocaleString('pt-BR')+'  ·  Código '+S.conf.code:'Treinamento ainda não confirmado pelo participante.',W/2,140,{align:'center'});
+ d.text(S.conf?'Treinamento '+(team?'realizado em equipe e confirmado por '+S.name.trim()+' em ':'confirmado em ')+S.conf.d.toLocaleString('pt-BR')+'  ·  Código '+S.conf.code:'Treinamento ainda não confirmado pelo participante.',W/2,140,{align:'center'});
  d.text('Emitido em '+new Date().toLocaleDateString('pt-BR'),W/2,150,{align:'center'});
  d.setFont('helvetica','italic');d.setFontSize(10);d.text('O culpado não é uma pessoa: é uma falha sistêmica. A resposta está nas evidências.',W/2,168,{align:'center'});
- d.save('Certificado_Detetive_da_Qualidade_'+(S.name.trim().replace(/\s+/g,'_')||'Participante')+'.pdf')}
+ }
 R();
 </script></body></html>
